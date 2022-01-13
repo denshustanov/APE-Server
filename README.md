@@ -14,7 +14,7 @@
 
 **Auth required** : YES
 
-###Success Responce
+### Success Responce
 **Condition** : GPhoto2-supported camera is available
 
 **Code**: `200 OK`
