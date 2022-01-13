@@ -1,4 +1,5 @@
-#Installation
+# Installation
+
 * Install Python3
 * Install all dependencies from requirements.txt
 * run app.py
