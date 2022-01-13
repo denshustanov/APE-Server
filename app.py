@@ -10,6 +10,7 @@ import rawpy
 import imageio
 
 from telescope import nexstar
+from camera.gphoto_camera import GPhotoCamera
 import glob
 import serial
 from telescope.nexstar_telescope import NexStarTelescope
@@ -26,33 +27,9 @@ users = {
     'admin': generate_password_hash('admin')
 }
 
-camera_connected = False
-camera_config = None
-iso_config = None
-shutter_speed_config = None
-image_format_config = None
-images_directory = '/home/deniel/gphoto/flutter/'
+cam = GPhotoCamera()
 
 telescope = None
-telescope_connected = False
-
-telescope_names = [
-    '',
-    'Celestron GPS Series',
-    '',
-    'Celestron I Series',
-    'Celestron I Series SE',
-    'Celestron CGE',
-    'Celestron Advanced GT',
-    'Celesron SLT',
-    '',
-    'Celestron CPC',
-    'Celestron GT',
-    'Celestron SE45',
-    'Celestrin SE68'
-    '', '', '',
-    'Celestron LCM'
-]
 
 
 @auth.verify_password
@@ -65,78 +42,35 @@ def verify_password(username, password):
 @app.route('/camera/connect')
 @auth.login_required
 def connect():
-    global camera_connected, camera_config, camera, image_format_config, iso_config, shutter_speed_config
-    try:
-        camera = gp.Camera()
-        camera.init()
-        camera_connected = True
-        camera_config = camera.get_config()
-
-        camera_config_json = {}
-        for child in camera_config.get_children():
-            for child1 in child.get_children():
-                # if str(child1.get_name) in ['imageformat', 'iso', 'shutterspeed']:
-                choises = []
-                if child1.get_type() == gp.GP_WIDGET_RADIO:
-                    for choise in child1.get_choices():
-                        if choise:
-                            choises.append(str(choise))
-                if str(child1.get_name()) == 'cameramodel':
-                    camera_config_json["model"] = str(child1.get_value())
-                elif str(child1.get_name()) == 'imageformat':
-                    image_format_config = child1
-                    camera_config_json["image_format"] = {
-                        "value": str(child1.get_value()),
-                        "choices": choises
-                    }
-                elif str(child1.get_name()) == 'iso':
-                    iso_config = child1
-                    camera_config_json["iso"] = {
-                        "value": str(child1.get_value()),
-                        "choices": choises
-                    }
-                elif str(child1.get_name()) == 'shutterspeed':
-                    shutter_speed_config = child1
-                    camera_config_json["shutter_speed"] = {
-                        "value": str(child1.get_value()),
-                        "choices": choises
-                    }
-                elif str(child1.get_name()) == 'batterylevel':
-                    if str(child1.get_value()) == 'Low':
-                        camera_config_json["battery_level"] = 25
-                    elif str(child1.get_value()) == '50%':
-                        camera_config_json["battery_level"] = 50
-                    elif str(child1.get_value()) == '100%':
-                        camera_config_json["battery_level"] = 100
-        return jsonify(camera_config_json)
-    except Exception as e:
-        camera_connected = False
+    global cam
+    status = cam.connect()
+    if status == 0:
+        return jsonify(cam.get_config_json())
+    else:
         return flask.Response(status=500)
 
 
 @app.route('/camera/disconnect')
 @auth.login_required
 def disconnect():
-    global camera_connected
-    camera.exit()
-    camera_connected = False
+    global cam
+    cam.disconnect()
     return 'Disconnected from camera.'
 
 
 @app.route('/camera/set-config')
 @auth.login_required
 def set_config():
-    global camera_connected, camera_config, camera
-    if camera_connected:
+    global cam
+    if cam.connected:
         setting = request.args.get('setting')
         value = request.args.get('value')
         if setting == 'iso':
-            iso_config.set_value(value)
+            cam.set_iso(value)
         elif setting == 'shutterspeed':
-            shutter_speed_config.set_value(value)
+            cam.set_shutter_speed(value)
         elif setting == 'imageformat':
-            image_format_config.set_value(value)
-        camera.set_config(camera_config)
+            cam.set_image_format(value)
         return flask.Response(status=200)
     else:
         return flask.Response(status=500)
@@ -145,21 +79,9 @@ def set_config():
 @app.route('/camera/capture')
 @auth.login_required
 def capture():
-    if camera_connected:
-        file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
-        target = os.path.join(images_directory, file_path.name)
-        image_name, image_format = file_path.name.split('.')
-        camera_file = camera.file_get(
-            file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
-        camera_file.save(target)
-
-        if image_format == 'cr2':
-            with rawpy.imread(target) as raw:
-                rgb = raw.postprocess()
-                imageio.imwrite(images_directory + 'preview/' + image_name + '.jpg', rgb)
-            return str(images_directory + 'preview/' + image_name + '.jpg')
-        else:
-            return target
+    global cam
+    if cam.connected:
+        return cam.capture_image()
     return flask.Response(status=500)
 
 

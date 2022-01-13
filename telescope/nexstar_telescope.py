@@ -11,13 +11,18 @@ class NexStarTelescope(object):
         self.__queue = Queue()
         self.__process = Process(target=NexStarTelescope.processing, args=(self.__queue, self.state, serial_port))
         self.state['coordinate_mode'] = TelescopeCoordinatesType.TELESCOPE_COORDINATES_RA_DEC
-        self.state['error'] = True
+        self.state['error'] = False
+        self.state['connected'] = False
 
     def connect(self):
         if not self.__process.is_alive():
             self.__process.run()
             time.sleep(0.5)
-            if self.state['error']:
+            if not self.state['connected']:
+                self.__process.close()
+                return 1
+
+            if not self.state['error']:
                 return 0
         return 1
 
@@ -45,9 +50,11 @@ class NexStarTelescope(object):
     def processing(queue, state,  serial_port):
         try:
             hand_controller = NexstarHandController(Serial(serial_port))
+            hand_controller.echo('0')
         except:
             state['error'] = True
             return
+        state['connected'] = True
         while True:
             state['c1'], state['c2'] = hand_controller.getPosition()
             if not queue.empty():
