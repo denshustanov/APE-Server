@@ -1,0 +1,13 @@
+Flask==1.1.2
+Flask_HTTPAuth==4.5.0
+gphoto2==2.3.1
+imageio==2.13.5
+numpy==1.19.5
+opencv_python==4.5.1.48
+Pillow==9.0.0
+PyQt5==5.15.6
+pyserial==3.5
+pytz==2020.4
+rawpy==0.17.0
+tzlocal==4.1
+Werkzeug==1.0.1
