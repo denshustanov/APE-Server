@@ -1,6 +1,6 @@
 # Description
 
-Astro Photography Environmeny provides REST interface to control astrophotography setup end peroform deep-sky imaging from remote client.
+Astro Photography Environmeny provides REST interface to control astrophotography setup and peroform deep-sky imaging from remote client.
 ### Features
 * Nexstar mount control: goto coordinates, slew, and getting current position
 * GPhoto2-compatible camera control: iso, shutter speed and image format setup, single-frame capturing
