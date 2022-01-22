@@ -1,3 +1,5 @@
+import datetime
+
 import gphoto2
 import os
 import imageio
@@ -22,7 +24,7 @@ class GPhotoCamera(object):
         self.image_format_choices = []
         self.battery_level = 0
 
-        self.images_directory = ''
+        self.images_directory = 'images/'
 
     def connect(self):
         try:
@@ -88,8 +90,11 @@ class GPhotoCamera(object):
 
     def capture_image(self):
         file_path = self.cam.capture(gphoto2.GP_CAPTURE_IMAGE)
-        target = os.path.join(self.images_directory, file_path.name)
         image_name, image_format = file_path.name.split('.')
+        image_name = 'image_' + str(datetime.datetime.now().date())+'_'+str(datetime.datetime.now().time()) + '.' + image_format
+        print(image_name)
+        target = os.path.join(self.images_directory, image_name)
+
         camera_file = self.cam.file_get(
             file_path.folder, file_path.name, gphoto2.GP_FILE_TYPE_NORMAL)
         camera_file.save(target)
@@ -114,6 +119,4 @@ class GPhotoCamera(object):
             "shutter_counter": self.shutter_counter
         }
 
-        return  config_json
-
-
+        return config_json

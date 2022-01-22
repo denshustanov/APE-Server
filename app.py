@@ -1,5 +1,5 @@
 import flask
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from camera.gphoto_camera import GPhotoCamera
@@ -40,6 +40,11 @@ def connect():
         return jsonify(cam.get_config_json())
     else:
         return flask.Response(status=500)
+
+@app.route('/camera/get-image')
+def getImage():
+    path = request.args.get('path')
+    return send_file(path)
 
 
 @app.route('/camera/disconnect')
