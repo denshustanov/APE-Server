@@ -13,17 +13,21 @@ class NexStarTelescope(object):
         self.state['coordinate_mode'] = TelescopeCoordinatesType.TELESCOPE_COORDINATES_RA_DEC
         self.state['error'] = False
         self.state['connected'] = False
+        self.state['model_name'] = ''
 
     def connect(self):
         if not self.__process.is_alive():
-            self.__process.run()
-            time.sleep(0.5)
+            self.__process.start()
+            print('connecting...')
+            time.sleep(2)
             if not self.state['connected']:
                 self.__process.close()
                 return 1
 
-            if not self.state['error']:
-                return 0
+            if self.state['error']:
+                return 1
+            print('connected')
+            return 0
         return 1
 
     def disconnect(self):
@@ -44,34 +48,46 @@ class NexStarTelescope(object):
         return self.state['c1'], self.state['c2']
 
     def connected(self):
-        return self.__process.run()
+        return self.__process.is_alive()
+
+    def get_model_name(self):
+        return self.state['model_name']
 
     @staticmethod
     def processing(queue, state,  serial_port):
         try:
             hand_controller = NexstarHandController(Serial(serial_port))
-            hand_controller.echo('0')
-        except:
+            hand_controller.echo(0)
+            state['model_name'] = NexstarModel(hand_controller.getModel()).name
+
+            state['connected'] = True
+            while True:
+                # print('a')
+                if state['coordinate_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_RA_DEC:
+                    state['c1'], state['c2'] = hand_controller.getPosition(coordinateMode=NexstarCoordinateMode.RA_DEC)
+                if state['coordinate_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_AZM_ALT:
+                    state['c1'], state['c2'] = hand_controller.getPosition(coordinateMode=NexstarCoordinateMode.AZM_ALT)
+                if not queue.empty():
+                    command = queue.get()
+                    command_type, command_values = command
+
+                    if command_type == TelescopeCommands.TELESCOPE_GOTO_POSITION:
+                        c1, c2 = command_values
+                        if state['coordinate_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_RA_DEC:
+                            hand_controller.gotoPosition(c1, c2, NexstarCoordinateMode.RA_DEC)
+                        elif state['coordinate_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_AZM_ALT:
+                            hand_controller.gotoPosition(c1, c2, NexstarCoordinateMode.AZM_ALT)
+
+                    elif command_type == TelescopeCommands.TELESCOPE_SLEW:
+                        rate, axis = command_values
+                        if axis == 0:
+                            print(NexstarDeviceId.ALT_DEC_MOTOR.name, rate)
+                            hand_controller.slew_fixed(NexstarDeviceId.ALT_DEC_MOTOR, rate)
+                        if axis == 1:
+                            print(NexstarDeviceId.AZM_RA_MOTOR.name, rate)
+                            hand_controller.slew_fixed(NexstarDeviceId.AZM_RA_MOTOR, rate)
+        except Exception as e:
+            print(e)
             state['error'] = True
             return
-        state['connected'] = True
-        while True:
-            state['c1'], state['c2'] = hand_controller.getPosition()
-            if not queue.empty():
-                command = queue.get()
-                command_type, command_values = command
-
-                if command_type == TelescopeCommands.TELESCOPE_GOTO_POSITION:
-                    c1, c2 = command_values
-                    if state['coordinates_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_RA_DEC:
-                        hand_controller.gotoPosition(c1, c2, NexstarCoordinateMode.RA_DEC)
-                    elif state['coordinates_mode'] == TelescopeCoordinatesType.TELESCOPE_COORDINATES_AZM_ALT:
-                        hand_controller.gotoPosition(c1, c2, NexstarCoordinateMode.AZM_ALT)
-
-                elif command_type == TelescopeCommands.TELESCOPE_SLEW:
-                    rate, axis = command_values
-                    if axis == NexstarDeviceId.ALT_DEC_MOTOR or axis == NexstarDeviceId.AZM_RA_MOTOR:
-                        hand_controller.slew_fixed(axis, rate)
-
-
 

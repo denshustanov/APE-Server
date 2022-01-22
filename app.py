@@ -103,12 +103,12 @@ def telescope_scan():
 @app.route('/telescope/connect')
 @auth.login_required
 def connect_telescope():
-    global telescope, telescope_connected
+    global telescope
     port = request.args.get('port')
     telescope = NexStarTelescope(port, manager)
     status = telescope.connect()
     if status == 0:
-        return flask.Response(status=200)
+        return telescope.get_model_name()
     else:
         return flask.Response(status=500)
 
@@ -127,9 +127,8 @@ def disconnect_telescope():
 @auth.login_required
 def telescope_get_position():
     global telescope
-    if isinstance(telescope, NexStarTelescope):
-        if telescope.connected():
-            return jsonify(telescope.get_position())
+    if telescope.connected():
+         return jsonify(telescope.get_position())
     return flask.Response(status=500)
 
 
@@ -139,10 +138,9 @@ def telescope_goto():
     global telescope
     c1 = float(request.args.get('c1'))
     c2 = float(request.args.get('c2'))
-    if isinstance(telescope, NexStarTelescope):
-        if telescope.connected():
-            telescope.goto(c1, c2)
-            return flask.Response(status=200)
+    if telescope.connected():
+        telescope.goto(c1, c2)
+        return flask.Response(status=200)
     return flask.Response(status=500)
 
 
@@ -152,14 +150,9 @@ def telescope_slew():
     global telescope
     motor = int(request.args.get('motor'))
     rate = int(request.args.get('rate'))
-    if isinstance(telescope, NexStarTelescope) and telescope.connected():
-        if motor == 0:
-            telescope.slew(nexstar.NexstarDeviceId.ALT_DEC_MOTOR, rate)
-        elif motor == 1:
-            telescope.slew(nexstar.NexstarDeviceId.AZM_RA_MOTOR, rate)
-        return flask.Response(status=200)
-    return flask.Response(status=500)
+    telescope.slew(rate, motor)
+    return flask.Response(status=200)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)

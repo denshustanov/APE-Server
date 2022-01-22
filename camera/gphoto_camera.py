@@ -72,19 +72,20 @@ class GPhotoCamera(object):
         if self.connected:
             if iso in self.iso_choices:
                 self.iso_config.set_value(iso)
-                self.cam.set_config(self.iso_config)
+                self.cam.set_config(self.config)
 
     def set_shutter_speed(self, shutter_speed):
         if self.connected:
             if shutter_speed in self.shutter_speed_choices:
+                print(shutter_speed)
                 self.shutter_speed_config.set_value(shutter_speed)
-                self.cam.set_config(self.shutter_speed_config)
+                self.cam.set_config(self.config)
 
     def set_image_format(self, image_format):
         if self.connected:
             if image_format in self.image_format_choices:
                 self.image_format_config.set_value(image_format)
-                self.cam.set_config(self.image_format_config)
+                self.cam.set_config(self.config)
 
     def capture_image(self):
         file_path = self.cam.capture(gphoto2.GP_CAPTURE_IMAGE)
