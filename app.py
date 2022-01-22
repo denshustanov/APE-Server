@@ -1,15 +1,7 @@
-import os
-
 import flask
 from flask import Flask, jsonify, request
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
-
-import gphoto2 as gp
-import rawpy
-import imageio
-
-from telescope import nexstar
 from camera.gphoto_camera import GPhotoCamera
 import glob
 import serial

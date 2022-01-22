@@ -1,6 +1,5 @@
 import gphoto2
 import os
-import rawpy
 import imageio
 
 
@@ -95,13 +94,7 @@ class GPhotoCamera(object):
             file_path.folder, file_path.name, gphoto2.GP_FILE_TYPE_NORMAL)
         camera_file.save(target)
 
-        if image_format == 'cr2':
-            with rawpy.imread(target) as raw:
-                rgb = raw.postprocess()
-                imageio.imwrite(self.images_directory + 'preview/' + image_name + '.jpg', rgb)
-            return str(self.images_directory + 'preview/' + image_name + '.jpg')
-        else:
-            return target
+        return target
 
     def get_config_json(self):
         config_json = {
