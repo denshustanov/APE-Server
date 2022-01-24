@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request, send_file
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from camera.gphoto_camera import GPhotoCamera
+from camera.simulator_camera import SimulatorCamera
 import glob
 import serial
 from telescope.nexstar_telescope import NexStarTelescope
@@ -19,7 +20,7 @@ users = {
     'admin': generate_password_hash('admin')
 }
 
-cam = GPhotoCamera()
+cam = SimulatorCamera()
 
 telescope = None
 

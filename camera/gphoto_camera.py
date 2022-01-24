@@ -1,12 +1,15 @@
 import datetime
-
+import threading
+import time
+from camera import Camera
 import gphoto2
 import os
-import imageio
+import threading
 
 
-class GPhotoCamera(object):
+class GPhotoCamera(Camera):
     def __init__(self):
+        super().__init__()
         self.cam = gphoto2.Camera()
         self.config = None
         self.connected = False
@@ -91,14 +94,15 @@ class GPhotoCamera(object):
     def capture_image(self):
         file_path = self.cam.capture(gphoto2.GP_CAPTURE_IMAGE)
         image_name, image_format = file_path.name.split('.')
-        image_name = 'image_' + str(datetime.datetime.now().date())+'_'+str(datetime.datetime.now().time()) + '.' + image_format
+        image_name = 'image_' + str(datetime.datetime.now().date()) + '_' + str(
+            datetime.datetime.now().time()) + '.' + image_format
         print(image_name)
         target = os.path.join(self.images_directory, image_name)
 
         camera_file = self.cam.file_get(
             file_path.folder, file_path.name, gphoto2.GP_FILE_TYPE_NORMAL)
         camera_file.save(target)
-
+        self.images.append(target)
         return target
 
     def get_config_json(self):
