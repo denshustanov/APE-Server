@@ -27,7 +27,7 @@ class GPhotoCamera(Camera):
         self.image_format_choices = []
         self.battery_level = 0
 
-        self.images_directory = 'images/'
+        self.images_directory = 'temp/'
 
     def connect(self):
         try:
@@ -101,6 +101,10 @@ class GPhotoCamera(Camera):
 
         camera_file = self.cam.file_get(
             file_path.folder, file_path.name, gphoto2.GP_FILE_TYPE_NORMAL)
+
+        if not os.path.isdir(self.images_directory):
+            os.mkdir(self.images_directory)
+
         camera_file.save(target)
         self.images.append(target)
         return target

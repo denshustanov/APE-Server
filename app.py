@@ -3,11 +3,9 @@ from flask import Flask, jsonify, request, send_file
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from camera.gphoto_camera import GPhotoCamera
-from camera.simulator_camera import SimulatorCamera
-import glob
-import serial
 from telescope.nexstar_telescope import NexStarTelescope
 from multiprocessing import Manager
+from image import ImageType, ImageManager
 
 manager = Manager()
 
@@ -20,9 +18,11 @@ users = {
     'admin': generate_password_hash('admin')
 }
 
-cam = SimulatorCamera()
+cam = GPhotoCamera()
 
 telescope = None
+
+image_manager = ImageManager()
 
 
 @auth.verify_password
@@ -30,6 +30,22 @@ def verify_password(username, password):
     if username in users and \
             check_password_hash(users.get(username), password):
         return username
+
+
+@app.route('/images/get-state')
+@auth.login_required
+def get_images_state():
+    global image_manager
+    return jsonify(image_manager.get_sessions_json())
+
+
+@app.route('/images/new-session')
+@auth.login_required
+def new_session():
+    global image_manager
+    session_name = request.args.get('name')
+    image_manager.new_session(session_name)
+    return flask.Response(status=200)
 
 
 @app.route('/camera/connect')
@@ -42,7 +58,8 @@ def connect():
     else:
         return flask.Response(status=500)
 
-@app.route('/camera/get-image')
+
+@app.route('/images/get-image')
 def getImage():
     path = request.args.get('path')
     return send_file(path)
@@ -77,24 +94,19 @@ def set_config():
 @app.route('/camera/capture')
 @auth.login_required
 def capture():
-    global cam
+    global cam, image_manager
     if cam.connected:
-        return cam.capture_image()
+        image_type_str = request.args.get('type')
+        image_type = ImageType[image_type_str]
+        path = cam.capture_image()
+        return image_manager.add_image(path, image_type)
     return flask.Response(status=500)
 
 
 @app.route('/telescope/scan')
 @auth.login_required
 def telescope_scan():
-    ports = glob.glob('/dev/tty[A-Za-z]*')
-    result = []
-    for port in ports:
-        try:
-            s = serial.Serial(port)
-            s.close()
-            result.append(port)
-        except Exception as e:
-            pass
+    result = NexStarTelescope.scan(manager)
     return jsonify(result)
 
 
